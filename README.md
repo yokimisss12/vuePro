@@ -1,1 +1,129 @@
 # vuePro
+# vue3 的6大亮点
+  - Performance： 性能比vue2 快1.2~2倍
+  - Tree shaking support: 按需编译，体积比vue2更小
+  - Composition API: 组合 API（类似React Hooks）
+  - Better TypeScript support: 更好的Ts支持
+  - Fragment, Teleport(Protal), Suspense: 更先进的组件
+
+  # Vue 3.0 是如何变快的？
+  - diff 方法优化：
+    + Vue2 中的虚拟dom 是全量对比
+    + Vue3 新增了静态标记（PatchFlag）
+      在与上次虚拟节点进行对比的时候，只对比带有patch flag的节点
+      并且可以通过flag的信息得知当前节点要对比的具体内容
+      Vue 3 Template Explorer: https://vue-next-template-explorer.netlify.app/
+  - hoistState 静态提升
+    + vue2 中无论元素是否参与更新，每次都会重新创建
+    + vue3中对不参与更新的元素，只会被创建一次，之后会在每次渲染的时候被不停地复用
+  - cacheHandlers 事件侦听器缓存
+    + 默认情况下onClock会被视为动态绑定，所以每次都会去追踪它的变化
+      但是因为是同一个函数，所以没有追踪变化，直接缓存起来复用即可
+  - ssr 渲染
+    + 当有大量静态的内容，这些内容会被当成纯字符串推进一个buffer里面，
+      即使存在动态绑定，会通过模板插值嵌入进去。这样比通过虚拟dom来渲染的快上很多
+    + 当静态内容大道一定量级的时候，会用_createStaticVNode方法在客户端生成一个static node
+      这些静态node，会被直接innerHtml，就不需要创建对象，然后根据对象渲染
+
+
+
+<!-- 当前代码
+    <div>
+    <p>Hi</p>
+    <p>Hi</p>
+    <p>Hi</p>
+    <p class="changeClass" style="color: red">Hi {{msg}}</p>
+    </div> 
+-->
+
+
+<!-- 源码
+     
+    export function render(_ctx, _cache, $props, $setup, $data, $options) {
+    return (_openBlock(), _createBlock("div", null, [
+        _createVNode("p", null, "Hi"),
+        _createVNode("p", null, "Hi"),
+        _createVNode("p", null, "Hi"),
+        _createVNode("p", {
+        class: "changeClass",
+        style: {"color":"red"}
+        }, "Hi " + _toDisplayString(_ctx.msg), 1 /* TEXT */)
+    ]))
+    } 
+-->
+
+<!-- 静态提升之后的代码
+    const _hoisted_1 = /*#__PURE__*/_createVNode("p", null, "Hi", -1 /* HOISTED */)
+    const _hoisted_2 = /*#__PURE__*/_createVNode("p", null, "Hi", -1 /* HOISTED */)
+    const _hoisted_3 = /*#__PURE__*/_createVNode("p", null, "Hi", -1 /* HOISTED */)
+    const _hoisted_4 = {
+    class: "changeClass",
+    style: {"color":"red"}
+    }
+
+    export function render(_ctx, _cache, $props, $setup, $data, $options) {
+    return (_openBlock(), _createBlock("div", null, [
+        _hoisted_1,
+        _hoisted_2,
+        _hoisted_3,
+        _createVNode("p", _hoisted_4, "Hi " + _toDisplayString(_ctx.msg), 1 /* TEXT */)
+    ]))
+    } 
+-->
+
+<!-- vue 2.0 实现的todoList
+<template>
+  <div>
+    <p>{{ msg }}</p>
+    <button @click="muFn">click</button>
+    <form>
+      <input type="text" v-model="stu.id">
+      <input type="text" v-model="stu.name">
+      <input type="text" v-model="stu.age">
+      <input type="submit" @click="addStu">
+    </form>
+    <ul>
+      <li v-for="(stu, index) in stus" :key="stu.id"
+      @click="remStu(index)">
+        {{stu.name}} ----- {{stu.age}}
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "App",
+  data: function () {
+    return {
+      msg: "hello yoki",
+      stus: [
+        {id: 1, name :'aa', age: 10},
+        {id: 2, name :'bb', age: 20},
+        {id: 3, name :'cc', age: 30},
+      ],
+      stu: [
+        {id: '', name: '', age: ''}
+      ]
+    };
+  },
+  methods: {
+    muFn() {
+      alert("hello yoki");
+    },
+    remStu(index){
+      this.stus = this.stus.filter((stu, idex) => idex !== index)
+    },
+    addStu(e){
+      e.preventDefault();
+      const stu = Object.assign({}, this.stu);
+      this.stus.push(stu);
+      this.stu.id = '';
+      this.stu.name = '';
+      this.stu.age = '';
+    }
+  },
+};
+</script>
+
+ -->
